@@ -12,6 +12,9 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#define PASS_THROUGH_VERT_SRC_FILENAME "gl/pass-through.vert"
+#define YSUM_FRAG_SRC_FILENAME "gl/ysum.frag"
+
 //
 // SHADERS
 //
@@ -22,15 +25,15 @@ bool load_shaders(gl::shader::shader_t& shader)
   size_t vert_len = 0u;
   size_t frag_len = 0u;
 
-  gl::shader::read_file("pass-through.vert", NULL, vert_len);
+  gl::shader::read_file(PASS_THROUGH_VERT_SRC_FILENAME, NULL, vert_len);
   vert_src = new char[vert_len+1];
   std::fill(vert_src, vert_src+vert_len+1, 0);
-  gl::shader::read_file("pass-through.vert", vert_src, vert_len);
+  gl::shader::read_file(PASS_THROUGH_VERT_SRC_FILENAME, vert_src, vert_len);
 
-  gl::shader::read_file("ysum.frag", NULL, frag_len);
+  gl::shader::read_file(YSUM_FRAG_SRC_FILENAME, NULL, frag_len);
   frag_src = new char[frag_len+1];
   std::fill(frag_src, frag_src+frag_len+1, 0);
-  gl::shader::read_file("ysum.frag", frag_src, frag_len);
+  gl::shader::read_file(YSUM_FRAG_SRC_FILENAME, frag_src, frag_len);
 
   gl::shader::definition_t def = {{"vertex", vert_src},
                                   {"fragment", frag_src}};
@@ -162,24 +165,14 @@ int main(int argc, char **argv)
   // write the opengl output image to stdout
   //
   gl::texture::write(texture_set["radon"],
-                     [](const int w, const int h, const int d, const float *buf) -> bool
+                     [](const int w, const int h, const int d, const unsigned char *buf) -> bool
                      {
-                       auto buf_ub = new unsigned char[w*h*d];
-                       auto mn = *std::min_element(buf, buf+(w*h*d));
-                       auto mx = *std::max_element(buf, buf+(w*h*d));
-
-                       for (auto i=0u; i<w*h*d; i++)
-                       {
-                         buf_ub[i] = static_cast<unsigned char>(((buf[i]-mn)/(mx-mn))*255.0f);
-                       }
-
                        return png_io::write_to_stream(std::cout,
                                                static_cast<const unsigned int>(w),
                                                static_cast<const unsigned int>(h),
                                                static_cast<const unsigned int>(d),
-                                               buf_ub);
-                     },
-                     GL_LUMINANCE);
+                                               buf);
+                     });
 
   return 0;
 }
